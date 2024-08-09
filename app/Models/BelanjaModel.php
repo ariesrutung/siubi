@@ -16,7 +16,6 @@ class BelanjaModel extends Model
         'satuan',
         'harga_satuan',
         'harga_total',
-        'total_transaksi',
         'investasi_id',
     ];
     protected $returnType = 'array';
@@ -26,40 +25,31 @@ class BelanjaModel extends Model
         return $this->selectMax('id')->first();
     }
 
-    // public function get_data_belanja_by_id()
-    // {
-    //     $builder = $this->db->table('belanja');
-    //     $builder->select('no_invoice, nama_item, jumlah_item, tanggal_transaksi, satuan, harga_satuan, harga_total, total_transaksi, investasi_id, periode, investor, jumlah_modal, tujuan, tgl_investasi');
-    //     $builder->join('investasi', 'investasi.id = belanja.investasi_id');
-
-    //     return $builder->get()->getResultArray();
-    // }
-
     public function get_filtered_data_belanja($searchValue = '', $start = 0, $length = 10)
     {
-        $builder = $this->db->table('belanja');
-        $builder->select('
-        belanja.investasi_id,
-        MAX(belanja.no_invoice) as no_invoice,
-        MAX(belanja.nama_item) as nama_item,
-        MAX(belanja.jumlah_item) as jumlah_item,
-        MAX(belanja.tanggal_transaksi) as tanggal_transaksi,
-        MAX(belanja.satuan) as satuan,
-        MAX(belanja.harga_satuan) as harga_satuan,
-        MAX(belanja.harga_total) as harga_total,
-        MAX(belanja.total_transaksi) as total_transaksi,
-        MAX(investasi.periode) as periode,
-        MAX(investor.nama_perusahaan) as nama_perusahaan,
-        MAX(investasi.investor) as investor,
-        MAX(investasi.jumlah_modal) as jumlah_modal,
-        MAX(investasi.tujuan) as tujuan,
-        MAX(investasi.tgl_investasi) as tgl_investasi
-    ');
-        $builder->join('investasi', 'investasi.id = belanja.investasi_id');
-        $builder->join('investor', 'investor.id = investasi.investor');
+        // Subquery untuk mendapatkan data yang diperlukan
+        $subquery = $this->db->table('belanja')
+            ->select('
+                belanja.investasi_id,
+                belanja.no_invoice,
+                MAX(belanja.nama_item) as nama_item,
+                MAX(belanja.jumlah_item) as jumlah_item,
+                MAX(belanja.tanggal_transaksi) as tanggal_transaksi,
+                MAX(belanja.satuan) as satuan,
+                MAX(belanja.harga_satuan) as harga_satuan,
+                MAX(belanja.harga_total) as harga_total,
+                MAX(investasi.periode) as periode,
+                MAX(investor.nama_perusahaan) as nama_perusahaan,
+                MAX(investasi.investor) as investor,
+                MAX(investasi.jumlah_modal) as jumlah_modal,
+                MAX(investasi.tujuan) as tujuan,
+                MAX(investasi.tgl_investasi) as tgl_investasi
+            ')
+            ->join('investasi', 'investasi.id = belanja.investasi_id')
+            ->join('investor', 'investor.id = investasi.investor');
 
         if ($searchValue) {
-            $builder->groupStart()
+            $subquery->groupStart()
                 ->like('belanja.no_invoice', $searchValue)
                 ->orLike('belanja.nama_item', $searchValue)
                 ->orLike('belanja.jumlah_item', $searchValue)
@@ -67,7 +57,6 @@ class BelanjaModel extends Model
                 ->orLike('belanja.satuan', $searchValue)
                 ->orLike('belanja.harga_satuan', $searchValue)
                 ->orLike('belanja.harga_total', $searchValue)
-                ->orLike('belanja.total_transaksi', $searchValue)
                 ->orLike('investasi.periode', $searchValue)
                 ->orLike('investasi.investor', $searchValue)
                 ->orLike('investasi.jumlah_modal', $searchValue)
@@ -76,21 +65,52 @@ class BelanjaModel extends Model
                 ->groupEnd();
         }
 
-        // Mengelompokkan data berdasarkan investasi_id
-        $builder->groupBy('belanja.investasi_id');
-
-        // Menghitung total record dengan filter
-        $totalRecordsWithFilter = $builder->countAllResults(false);
+        // Mengelompokkan data berdasarkan semua kolom dalam SELECT list
+        $subquery->groupBy('belanja.investasi_id, belanja.no_invoice');
 
         // Membatasi jumlah data yang diambil
-        $builder->limit($length, $start);
+        $subquery->limit($length, $start);
 
-        // Memesan hasil berdasarkan MAX(belanja.id)
-        $builder->orderBy('MAX(belanja.id)', 'DESC');
+        // Menghitung total record dengan filter
+        $totalRecordsWithFilter = $subquery->countAllResults(false);
+
+        // Memesan hasil berdasarkan no_invoice
+        $subquery->orderBy('belanja.no_invoice', 'DESC');
 
         // Mendapatkan hasil
-        $filteredRecords = $builder->get()->getResultArray();
+        $filteredRecords = $subquery->get()->getResultArray();
 
         return ['data' => $filteredRecords, 'totalFiltered' => $totalRecordsWithFilter];
+    }
+
+    public function getDetailWithBarang($noInvoice)
+    {
+        return $this->select('
+            belanja.no_invoice, 
+            data_barang.nama_barang,
+            belanja.jumlah_item,
+            belanja.satuan,
+            belanja.harga_satuan,
+            belanja.harga_total,
+            belanja.tanggal_transaksi
+        ')
+            ->join('data_barang', 'data_barang.id = belanja.nama_item')
+            ->where('belanja.no_invoice', $noInvoice)
+            ->findAll();
+    }
+
+
+    public function getInvoiceByInvestasiId($investasiId)
+    {
+        return $this->where('investasi_id', $investasiId)
+            ->select('no_invoice, tanggal_transaksi')
+            ->first();
+    }
+
+    public function getInvoiceByNoInvoice($noInvoice)
+    {
+        return $this->where('no_invoice', $noInvoice)
+            ->select('no_invoice, tanggal_transaksi')
+            ->first();
     }
 }

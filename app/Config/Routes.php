@@ -45,6 +45,11 @@ $routes->get('admin/data_perusahaan', 'Admin::data_perusahaan');
 $routes->post('admin/update_perusahaan', 'Admin::update_perusahaan');
 $routes->post('admin/dataBelanjaBarang', 'Admin::dataBelanjaBarang');
 
+// Routes Data Mitra
+$routes->get('admin/data_mitra', 'Admin::data_mitra');
+$routes->post('admin/update_mitra', 'Admin::update_mitra');
+// $routes->post('admin/dataBelanjaBarang', 'Admin::dataBelanjaBarang');
+
 
 // Routes Belanja Barang
 $routes->get('admin/belanja_barang', 'Admin::belanja_barang');
@@ -53,7 +58,8 @@ $routes->get('admin/getInvestasiDetails/(:num)/(:segment)', 'Admin::getInvestasi
 $routes->get('admin/getNewTransactionId', 'Admin::getNewTransactionId');
 $routes->get('admin/getNamaBarangOptions', 'Admin::getNamaBarangOptions');
 $routes->post('admin/simpan_data_belanja', 'Admin::simpan_data_belanja');
-// $routes->get('admin/simpan_data_belanja', 'Admin::simpan_data_belanja');
+$routes->get('admin/get_detail_belanja', 'Admin::get_detail_belanja');
+$routes->post('admin/hapusDataBelanja', 'Admin::hapusDataBelanja');
 
 
 // Routes Penjualan Barang

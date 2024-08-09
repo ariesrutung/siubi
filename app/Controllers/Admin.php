@@ -8,6 +8,7 @@ use App\Models\InvestasiModel;
 use App\Models\BarangModel;
 use App\Models\PerusahaanModel;
 use App\Models\BelanjaModel;
+use App\Models\MitraModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Admin extends BaseController
@@ -490,15 +491,27 @@ class Admin extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil diperbarui']);
     }
 
+    // --------------------------------------------------------------------
+    // DATA MITRA
+    // --------------------------------------------------------------------
 
-    private function loadView(string $viewName, array $data = []): string
+    public function data_mitra()
     {
-        $uri = service('uri');
-        $data['current_uri'] = $uri->getSegment(2); // Ambil segmen kedua dari URI
-
-        return view($viewName, $data);
+        $modelMitra = new MitraModel();
+        $data['mitra'] = $modelMitra->findAll()[0]; // Mengambil data pertama
+        $data['title'] = 'Manajemen Data Mitra';
+        return $this->loadView('admin/data_mitra', $data);
     }
 
+    public function update_mitra()
+    {
+        $model = new MitraModel();
+        $data = $this->request->getPost();
+
+        $model->update(1, $data);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Data berhasil diperbarui']);
+    }
 
     // --------------------------------------------------------------------
     // DATA BELANJA BARANG
@@ -506,7 +519,25 @@ class Admin extends BaseController
     public function belanja_barang()
     {
         $investasiModel = new InvestasiModel();
+        $belanjaModel = new BelanjaModel();
+        $perusahaanModel = new PerusahaanModel();
+        $mitraModel = new MitraModel();
+
+        // Ambil data investor dan periode
         $investors = $investasiModel->getInvestorCompanies();
+
+        // Ambil data investasi_id dari request (misalnya dari URL atau form)
+        $investasiId = $this->request->getGet('investasi_id');
+
+        // Ambil no_invoice berdasarkan investasi_id
+        $invoiceData = $belanjaModel->getInvoiceByInvestasiId($investasiId);
+
+        // Ambil data belanja dengan detail barang
+        $belanjaData = $belanjaModel->getDetailWithBarang($investasiId);
+
+        // Ambil data perusahaan
+        $perusahaanData = $perusahaanModel->findAll();
+        $mitraData = $mitraModel->findAll();
 
         // Process to get unique investors with their periods
         $uniqueInvestors = [];
@@ -529,6 +560,10 @@ class Admin extends BaseController
 
         // Convert associative array to indexed array for easier use in the view
         $data['investors'] = array_values($uniqueInvestors);
+        $data['belanjaData'] = $belanjaData;
+        $data['perusahaanData'] = $perusahaanData;
+        $data['mitraData'] = $mitraData;
+        $data['invoiceData'] = $invoiceData;
         $data['title'] = 'Manajemen Belanja Barang';
 
         return $this->loadView('admin/belanja_barang', $data);
@@ -616,9 +651,9 @@ class Admin extends BaseController
         $data = [];
         foreach ($filteredRecords as $index => $record) {
             $record['number'] = $start + $index + 1;
-            $record['aksi'] = '<a class="btn btn-info btn-sm detail" data-id="' . $record['investasi_id'] . '"><i class="fas fa-eye"></i></a> '
-                . '<a class="btn btn-primary btn-sm edit" data-id="' . $record['investasi_id'] . '"><i class="fas fa-edit"></i></a> '
-                . '<a class="btn btn-danger btn-sm hapus" data-id="' . $record['investasi_id'] . '"><i class="fas fa-trash"></i></a>';
+            $record['aksi'] = '<div class="text-center">' .
+                '<a class="btn btn-info btn-sm detail" data-id="' . $record['no_invoice'] . '"><i class="fas fa-eye"></i></a> '
+                . '<a class="btn btn-danger btn-sm hapus" data-id="' . $record['no_invoice'] . '"><i class="fas fa-trash"></i></a>';
             $data[] = $record;
         }
 
@@ -630,6 +665,28 @@ class Admin extends BaseController
         ];
 
         return $this->response->setJSON($response);
+    }
+
+    public function get_detail_belanja()
+    {
+        $request = service('request');
+        $noInvoice = $request->getGet('no_invoice');
+
+        $belanjaModel = new BelanjaModel();
+        $perusahaanModel = new PerusahaanModel();
+        $mitraModel = new MitraModel();
+
+        $invoiceData = $belanjaModel->getInvoiceByNoInvoice($noInvoice);
+        $detailData = $belanjaModel->getDetailWithBarang($noInvoice);
+        $perusahaanData = $perusahaanModel->findAll();
+        $mitraData = $mitraModel->findAll();
+
+        return $this->response->setJSON([
+            'invoiceData' => $invoiceData,
+            'detailData' => $detailData,
+            'perusahaanData' => $perusahaanData,
+            'mitraData' => $mitraData
+        ]);
     }
 
     public function simpan_data_belanja()
@@ -692,6 +749,23 @@ class Admin extends BaseController
         }
     }
 
+    public function hapusDataBelanja()
+    {
+        $request = service('request');
+        $belanjaModel = new BelanjaModel();
+
+        $noInvoice = $request->getPost('no_invoice');
+
+        if ($noInvoice) {
+            $belanjaModel->where('no_invoice', $noInvoice)->delete();
+
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Data berhasil dihapus.']);
+        } else {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'No Invoice tidak ditemukan.']);
+        }
+    }
+
+
     // --------------------------------------------------------------------
     // DATA PENJUALAN BARANG
     // --------------------------------------------------------------------
@@ -699,5 +773,16 @@ class Admin extends BaseController
     {
         $data['title'] = 'Manajemen Penjualan Barang';
         return $this->loadView('admin/penjualan_barang', $data);
+    }
+
+    // --------------------------------------------------------------------
+    // view
+    // --------------------------------------------------------------------
+    private function loadView(string $viewName, array $data = []): string
+    {
+        $uri = service('uri');
+        $data['current_uri'] = $uri->getSegment(2); // Ambil segmen kedua dari URI
+
+        return view($viewName, $data);
     }
 }

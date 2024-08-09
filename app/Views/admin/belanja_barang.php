@@ -38,6 +38,10 @@
     .is-invalid {
         border-color: red;
     }
+
+    img.w-15.inv-logo {
+        width: 15% !important;
+    }
 </style>
 <section class="content-header">
     <div class="container-fluid">
@@ -68,13 +72,13 @@
                         <table id="dataBelanjaTable" class="display table table-bordered" style="width:100%">
                             <thead>
                                 <tr>
-                                    <th>No.</th>
+                                    <th class="text-center">No.</th>
                                     <th>Periode</th>
                                     <th>Investor</th>
-                                    <th>Total Modal</th>
+                                    <th>Jumlah Investasi</th>
                                     <th>Tgl. Investasi</th>
                                     <th>Tujuan</th>
-                                    <th>Aksi</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -98,7 +102,6 @@
             </div>
             <form id="uploadDataForm">
                 <div class="modal-body">
-                    <!-- Row pertama -->
                     <div class="row" id="inputFields">
                         <div class="col-lg-6">
                             <div class="mb-3">
@@ -165,7 +168,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="additionalFieldsContainer">
-                                    <!-- Baris default akan ditambahkan di sini -->
                                 </tbody>
                             </table>
                         </div>
@@ -191,9 +193,324 @@
     </div>
 </div>
 
+<!-- Modal Detail -->
+<div class="modal fade" id="detailModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog  modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="ribbon-wrapper ribbon-lg">
+                <div class="ribbon bg-success text-lg">
+                    INVOICE
+                </div>
+            </div>
+            <div class="modal-header">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h5 class="modal-title" id="detailModalLabel">No. Invoice: <span class="text-bold text-danger" id="no_invoice_header"></span></h5>
+                        <span class="text-muted">Tanggal Transaksi: <strong class="text-danger" id="tanggal_transaksi"></strong></span>
+                    </div>
+                    <div class="col-lg-6"></div>
+                </div>
+                <p></p>
+            </div>
+            <div class="modal-body">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-sm-6">
+                                <h6 class="mb-3">Dari:</h6>
+                                <div>
+                                    <strong id="perusahaan_nama"></strong>
+                                </div>
+                                <div id="perusahaan_alamat"></div>
+                                <div id="perusahaan_kota"></div>
+                                <div id="perusahaan_email"></div>
+                                <div id="perusahaan_phone"></div>
+                            </div>
+                            <div id="to" class="col-sm-6 text-right">
+                                <h6 class="mb-3">Kepada:</h6>
+                                <div>
+                                    <strong id="mitra_nama"></strong>
+                                </div>
+                                <div id="mitra_alamat"></div>
+                                <div id="mitra_kota"></div>
+                                <div id="mitra_email"></div>
+                                <div id="mitra_phone"></div>
+                            </div>
+                        </div>
+                        <hr>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Nama Item</th>
+                                    <th>Qty</th>
+                                    <th>Satuan</th>
+                                    <th>Harga Satuan</th>
+                                    <th>Harga Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailTableBody">
+                                <!-- Data akan diisi oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                <button type="submit" class="btn btn-info">Proses Pembayaran</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(document).ready(function() {
+        $(document).on('click', '.detail', function() {
+            var noInvoice = $(this).data('id');
+
+            $.ajax({
+                url: '<?= base_url("admin/get_detail_belanja") ?>',
+                type: 'GET',
+                data: {
+                    no_invoice: noInvoice
+                },
+                success: function(response) {
+                    if (response.invoiceData) {
+                        var tanggalTransaksi = response.invoiceData.tanggal_transaksi;
+                        var tanggalSaja = tanggalTransaksi.split(' ')[0];
+                        var dateParts = tanggalSaja.split('-');
+                        var formattedDate = dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+
+                        $('#tanggal_transaksi').text(formattedDate);
+
+                        var totalTransaksi = response.invoiceData.total_transaksi;
+                        if (!isNaN(totalTransaksi)) {
+                            $('#total_transaksi').val(formatRupiah(totalTransaksi));
+                        } else {
+                            $('#total_transaksi').val(totalTransaksi);
+                        }
+
+                        $('#no_invoice_header').text(response.invoiceData.no_invoice);
+                    }
+
+                    if (response.perusahaanData) {
+                        var perusahaan = response.perusahaanData[0];
+                        $('#perusahaan_nama').text(perusahaan.nama_perseroan);
+                        $('#perusahaan_alamat').text(perusahaan.alamat_lengkap_perseroan);
+                        $('#perusahaan_kota').text(perusahaan.kota + ', ' + perusahaan.provinsi + ', ' + perusahaan.kode_pos);
+                        $('#perusahaan_email').text('Email: ' + perusahaan.email);
+                        $('#perusahaan_phone').text('Phone: ' + perusahaan.no_hp);
+                    }
+
+                    if (response.mitraData) {
+                        var mitra = response.mitraData[0];
+                        $('#mitra_nama').text(mitra.nama_perseroan);
+                        $('#mitra_alamat').text(mitra.alamat_lengkap_perseroan);
+                        $('#mitra_kota').text(mitra.kota + ', ' + mitra.provinsi + ', ' + mitra.kode_pos);
+                        $('#mitra_email').text('Email: ' + mitra.email);
+                        $('#mitra_phone').text('Phone: ' + mitra.no_hp);
+                    }
+
+                    $('#detailTableBody').empty();
+                    var no = 1;
+                    var totalTransaksi = 0;
+                    response.detailData.forEach(function(record) {
+                        var hargaSatuan = !isNaN(record.harga_satuan) ? formatRupiah(record.harga_satuan) : record.harga_satuan;
+                        var hargaTotal = !isNaN(record.harga_total) ? formatRupiah(record.harga_total) : record.harga_total;
+
+                        if (!isNaN(record.harga_total)) {
+                            totalTransaksi += parseFloat(record.harga_total);
+                        }
+
+                        var row = '<tr>' +
+                            '<td class="text-center">' + no++ + '</td>' +
+                            '<td>' + record.nama_barang + '</td>' +
+                            '<td class="text-center">' + record.jumlah_item + '</td>' +
+                            '<td class="text-center">' + record.satuan + '</td>' +
+                            '<td class="text-right">' + hargaSatuan + '</td>' +
+                            '<td class="text-right">' + hargaTotal + '</td>' +
+                            '</tr>';
+                        $('#detailTableBody').append(row);
+                    });
+
+                    $('#detailTableBody').parent().find('tfoot').remove();
+
+                    var footerRow = '<tfoot>' +
+                        '<tr>' +
+                        '<td colspan="5" class="text-right"><strong>Total Transaksi</strong></td>' +
+                        '<td class="text-right"> <strong>' + formatRupiah(totalTransaksi) + '</strong></td>' +
+                        '</tr>' +
+                        '</tfoot>';
+                    $('#detailTableBody').parent().append(footerRow);
+
+                    $('#detailModal').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    console.error(error);
+                    alert('Gagal mengambil data detail.');
+                }
+            });
+        });
+
+        function formatRupiah(angka) {
+            var rupiah = '';
+            var angkarev = angka.toString().split('').reverse().join('');
+            for (var i = 0; i < angkarev.length; i++) {
+                if (i % 3 == 0 && i != 0) {
+                    rupiah += '.';
+                }
+                rupiah += angkarev[i];
+            }
+            return 'Rp. ' + rupiah.split('').reverse().join('');
+        }
+
+        var dataBelanjaTable = $('#dataBelanjaTable').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": "<?= site_url('admin/dataBelanjaBarang') ?>",
+                "type": "POST",
+                "error": function(xhr, error, code) {
+                    console.log("Error:", error);
+                    console.log("Code:", code);
+                    console.log("Response Text:", xhr.responseText);
+                }
+            },
+            "columns": [{
+                    "data": "number",
+                    "orderable": false,
+                    "className": "text-center"
+                },
+                {
+                    "data": "periode",
+                    "orderable": false,
+                },
+                {
+                    "data": "nama_perusahaan",
+                    "orderable": false
+                },
+                {
+                    "data": "jumlah_modal",
+                    "orderable": false
+                },
+                {
+                    "data": "tgl_investasi",
+                    "orderable": false
+                },
+                {
+                    "data": "tujuan",
+                    "orderable": false
+                },
+                {
+                    "data": "aksi",
+                    "orderable": false
+                }
+            ],
+            "order": [],
+            "paging": true,
+            "lengthChange": true,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "autoWidth": false,
+            "responsive": true
+        });
+
+        $('#dataBelanjaTable').on('click', '.hapus', function() {
+            const noInvoice = $(this).data('id');
+
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: 'Data ini akan dihapus secara permanen!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '<?= base_url('admin/hapusDataBelanja'); ?>',
+                        type: 'POST',
+                        data: {
+                            no_invoice: noInvoice
+                        },
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                Swal.fire('Terhapus!', response.message, 'success');
+                                dataBelanjaTable.ajax.reload();
+                            } else {
+                                Swal.fire('Gagal!', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error:', error);
+                            Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus data.', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#uploadDataForm').on('submit', function(e) {
+            e.preventDefault();
+
+            var formData = new FormData(this);
+
+            $.ajax({
+                url: '<?= site_url('admin/simpan_data_belanja') ?>',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("Response:", response);
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: 'Data berhasil dikirim!',
+                        }).then(() => {
+                            $('#uploadDataModal').modal('hide');
+
+                            $('#uploadDataForm')[0].reset();
+
+                            $('#investor').val('').trigger('change');
+                            $('#periode').empty().append('<option value="">Pilih Periode</option>');
+                            $('#additionalFields').hide();
+
+                            $('#dataBelanjaTable').DataTable().ajax.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: 'Gagal mengirim data: ' + response.message,
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan: ' + error,
+                    });
+                }
+            });
+        });
+    });
+</script>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -222,6 +539,10 @@
 
         function updateFields() {
             const selectedPeriode = periodeSelect.options[periodeSelect.selectedIndex];
+            if (!selectedPeriode) {
+                console.error('Selected periode option is null.');
+                return;
+            }
             const jumlahModal = selectedPeriode.getAttribute('data-jumlah_modal');
             const investasiID = selectedPeriode.getAttribute('data-investasi_id');
             const tujuan = selectedPeriode.getAttribute('data-tujuan');
@@ -244,36 +565,44 @@
             }
         }
 
-        investorSelect.addEventListener('change', function() {
-            const selectedInvestor = this.options[this.selectedIndex];
-            const periods = selectedInvestor.getAttribute('data-periods');
+        if (investorSelect) {
+            investorSelect.addEventListener('change', function() {
+                const selectedInvestor = this.options[this.selectedIndex];
+                if (!selectedInvestor) {
+                    console.error('Selected investor option is null.');
+                    return;
+                }
+                const periods = selectedInvestor.getAttribute('data-periods');
 
-            // Reset periode select dan input lainnya
-            periodeSelect.innerHTML = '<option value="">Pilih Periode</option>';
-            modalInvestasiInput.value = '';
-            namaItemInput.value = '';
-            idInvestasiInput.value = '';
-            idTransaksiInput.value = '';
+                // Reset periode select dan input lainnya
+                periodeSelect.innerHTML = '<option value="">Pilih Periode</option>';
+                modalInvestasiInput.value = '';
+                namaItemInput.value = '';
+                idInvestasiInput.value = '';
+                idTransaksiInput.value = '';
 
-            if (periods) {
-                const periodsArray = JSON.parse(periods);
-                periodsArray.forEach(period => {
-                    const option = document.createElement('option');
-                    option.value = period.periode;
-                    option.textContent = period.periode;
-                    option.setAttribute('data-jumlah_modal', period.jumlah_modal);
-                    option.setAttribute('data-tujuan', period.tujuan);
-                    option.setAttribute('data-investasi_id', period.investasi_id);
-                    option.setAttribute('data-tgl_investasi', period.tgl_investasi);
-                    periodeSelect.appendChild(option);
-                });
-            }
+                if (periods) {
+                    const periodsArray = JSON.parse(periods);
+                    periodsArray.forEach(period => {
+                        const option = document.createElement('option');
+                        option.value = period.periode;
+                        option.textContent = period.periode;
+                        option.setAttribute('data-jumlah_modal', period.jumlah_modal);
+                        option.setAttribute('data-tujuan', period.tujuan);
+                        option.setAttribute('data-investasi_id', period.investasi_id);
+                        option.setAttribute('data-tgl_investasi', period.tgl_investasi);
+                        periodeSelect.appendChild(option);
+                    });
+                }
 
-            // Check fields setelah mengisi periode
-            checkFields();
-        });
+                // Check fields setelah mengisi periode
+                checkFields();
+            });
+        }
 
-        periodeSelect.addEventListener('change', updateFields);
+        if (periodeSelect) {
+            periodeSelect.addEventListener('change', updateFields);
+        }
 
         // Initial check
         checkFields();
@@ -281,26 +610,32 @@
         const namaBarangSelect = document.getElementById('nama_barang');
         const satuanInput = document.getElementById('satuan');
 
-        // Fetch daftar nama barang untuk dropdown
-        fetch(`<?= base_url('admin/getNamaBarangOptions'); ?>`)
-            .then(response => response.json())
-            .then(data => {
-                data.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = item.nama_barang;
-                    option.setAttribute('data-satuan', item.satuan);
-                    namaBarangSelect.appendChild(option);
-                });
-            })
-            .catch(error => console.error('Error:', error));
+        if (namaBarangSelect) {
+            // Fetch daftar nama barang untuk dropdown
+            fetch('<?= base_url('admin/getNamaBarangOptions'); ?>')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.nama_barang;
+                        option.setAttribute('data-satuan', item.satuan);
+                        namaBarangSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
 
-        namaBarangSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const satuan = selectedOption.getAttribute('data-satuan');
+            namaBarangSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (!selectedOption) {
+                    console.error('Selected barang option is null.');
+                    return;
+                }
+                const satuan = selectedOption.getAttribute('data-satuan');
 
-            satuanInput.value = satuan || '';
-        });
+                satuanInput.value = satuan || '';
+            });
+        }
     });
 </script>
 
@@ -473,105 +808,4 @@
     });
 </script>
 
-<script>
-    $(document).ready(function() {
-        var dataBelanjaTable = $('#dataBelanjaTable').DataTable({
-            "processing": true,
-            "serverSide": true,
-            "ajax": {
-                "url": "<?= site_url('admin/dataBelanjaBarang') ?>",
-                "type": "POST",
-                "data": function(d) {
-                    console.log(d); // Debugging
-                },
-                "error": function(xhr, error, code) {
-                    console.log("Error:", error);
-                    console.log("Code:", code);
-                    console.log("Response Text:", xhr.responseText);
-                }
-            },
-            "columns": [{
-                    "data": "number",
-                    "orderable": false
-                },
-                {
-                    "data": "periode",
-                    "orderable": false
-                },
-                {
-                    "data": "nama_perusahaan",
-                    "orderable": false
-                },
-                {
-                    "data": "jumlah_modal",
-                    "orderable": false
-                },
-                {
-                    "data": "tgl_investasi",
-                    "orderable": false
-                },
-                {
-                    "data": "tujuan",
-                    "orderable": false
-                },
-                {
-                    "data": "aksi",
-                    "orderable": false
-                }
-            ],
-            "order": [], // Disable initial sort
-            "paging": true,
-            "lengthChange": true,
-            "searching": true,
-            "ordering": true,
-            "info": true,
-            "autoWidth": false,
-            "responsive": true
-        });
-
-    });
-</script>
-
-<script>
-    $('#uploadDataForm').on('submit', function(e) {
-        e.preventDefault();
-
-        var formData = new FormData(this);
-
-        $.ajax({
-            url: '<?= site_url('admin/simpan_data_belanja') ?>',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                console.log("Response:", response);
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: 'Data berhasil dikirim!',
-                    });
-                    $('#uploadDataModal').modal('hide');
-                    $('#uploadDataForm')[0].reset(); // Reset form
-                    $('#dataBelanjaTable').DataTable().ajax.reload(); // Reload DataTable jika ada
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal!',
-                        text: 'Gagal mengirim data: ' + response.message,
-                    });
-                }
-            },
-            error: function(xhr, status, error) {
-                console.log("Error:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'Terjadi kesalahan: ' + error,
-                });
-            }
-        });
-    });
-</script>
 <?= $this->endSection() ?>

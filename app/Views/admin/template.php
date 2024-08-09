@@ -33,7 +33,7 @@
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
     <div class="wrapper">
         <div class="preloader flex-column justify-content-center align-items-center">
-            <img class="animation__wobble" src="dist/img/AdminLTELogo.png" alt="AdminLTELogo" height="60" width="60">
+            <img class="animation__wobble" src="<?php echo base_url('adminlte32/dist/img/AdminLTELogo.png'); ?>" alt="AdminLTELogo" height="60" width="60">
         </div>
 
         <nav class="main-header navbar navbar-expand navbar-dark">
@@ -107,7 +107,7 @@
                         <a href="#" class="dropdown-item">
                             <!-- Message Start -->
                             <div class="media">
-                                <img src="dist/img/user3-128x128.jpg" alt="User Avatar" class="img-size-50 img-circle mr-3">
+                                <img src="<?php echo base_url('adminlte32/dist/img/user3-128x128.jpg'); ?>" alt="User Avatar" class="img-size-50 img-circle mr-3">
                                 <div class="media-body">
                                     <h3 class="dropdown-item-title">
                                         Nora Silvester
@@ -184,8 +184,8 @@
                                 <p>Dashboard</p>
                             </a>
                         </li>
-                        <li class="nav-item <?= ($current_uri == 'data_perusahaan' || $current_uri == 'investor' || $current_uri == 'investasi' || $current_uri == 'data_barang') ? 'menu-open' : '' ?>">
-                            <a class="nav-link <?= ($current_uri == 'data_perusahaan' || $current_uri == 'investor' || $current_uri == 'investasi' || $current_uri == 'data_barang') ? 'active' : '' ?>">
+                        <li class="nav-item <?= ($current_uri == 'data_perusahaan' || $current_uri == 'data_mitra' || $current_uri == 'investor' || $current_uri == 'investasi' || $current_uri == 'data_barang') ? 'menu-open' : '' ?>">
+                            <a class="nav-link <?= ($current_uri == 'data_perusahaan' || $current_uri == 'data_mitra' || $current_uri == 'investor' || $current_uri == 'investasi' || $current_uri == 'data_barang') ? 'active' : '' ?>">
                                 <i class="nav-icon bi bi-clipboard-data"></i>
                                 <p>
                                     Master Data
@@ -197,6 +197,12 @@
                                     <a href="<?php echo base_url('admin/data_perusahaan'); ?>" class="nav-link <?= ($current_uri == 'data_perusahaan') ? 'active' : '' ?>">
                                         <i class="bi bi-circle nav-icon"></i>
                                         <p>Data Perusahaan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('admin/data_mitra'); ?>" class="nav-link <?= ($current_uri == 'data_mitra') ? 'active' : '' ?>">
+                                        <i class="bi bi-circle nav-icon"></i>
+                                        <p>Data Mitra</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -262,7 +268,6 @@
     <script src="<?php echo base_url('adminlte32/plugins/jquery-mapael/jquery.mapael.min.js'); ?>"></script>
     <script src="<?php echo base_url('adminlte32/plugins/jquery-mapael/maps/usa_states.min.js'); ?>"></script>
     <script src="<?php echo base_url('adminlte32/plugins/chart.js/Chart.min.js'); ?>"></script>
-    <script src="<?php echo base_url('adminlte32/dist/js/demo.js'); ?>"></script>
     <script src="<?php echo base_url('adminlte32/dist/js/pages/dashboard2.js'); ?>"></script>
 
 
